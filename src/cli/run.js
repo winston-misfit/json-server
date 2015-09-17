@@ -1,3 +1,4 @@
+var _ = require('underscore')
 var fs = require('fs')
 var chalk = require('chalk')
 var is = require('./utils/is')
@@ -6,7 +7,7 @@ var watch = require('./watch')
 var pause = require('connect-pause')
 var jsonServer = require('../server')
 
-function prettyPrint (argv, object, rules) {
+function prettyPrint (argv, object, rules, responses) {
   var host = argv.host === '0.0.0.0' ? 'localhost' : argv.host
   var port = argv.port
   var root = 'http://' + host + ':' + port
@@ -25,13 +26,21 @@ function prettyPrint (argv, object, rules) {
     }
   }
 
+  if (responses) {
+    console.log()
+    console.log(chalk.bold('  Other response'))
+    for (var response in responses) {
+      console.log('  ' + response + ' -> ' + responses[response])
+    }
+  }
+
   console.log()
   console.log(chalk.bold('  Home'))
   console.log('  ' + root)
   console.log()
 }
 
-function createApp (source, object, routes, argv) {
+function createApp (source, object, routes, responses, argv) {
   var app = jsonServer.create()
 
   var router = jsonServer.router(
@@ -51,10 +60,27 @@ function createApp (source, object, routes, argv) {
     app.use(pause(argv.delay))
   }
 
+  if (responses)
+    var key_placeholder = ""
+    var others = []
+    Object.keys(responses).forEach(function(key) {
+      if (responses[key] == "*") {
+        key_placeholder = key
+      }
+      else {
+        others.push(key)
+      }
+    });
+    router.render = function (req, res) {
+      new_response = _.clone(responses)
+      new_response[key_placeholder] = res.locals.data
+      res.jsonp(
+        new_response
+      )
+  }
   router.db._.id = argv.id
   app.db = router.db
   app.use(router)
-
   return app
 }
 
@@ -84,12 +110,20 @@ module.exports = function (argv) {
 
       console.log(chalk.gray('  Done'))
 
+      // Load additional response
+      if (argv.response) {
+        console.log(chalk.gray('  Loading', argv.response))
+        var responses = JSON.parse(fs.readFileSync(argv.response))
+      }
+
+      console.log(chalk.gray('  Done'))
+
       // Create app and server
-      app = createApp(source, data, routes, argv)
+      app = createApp(source, data, routes, responses, argv)
       server = app.listen(argv.port, argv.host)
 
       // Display server informations
-      prettyPrint(argv, data, routes)
+      prettyPrint(argv, data, routes, responses)
 
       cb && cb()
     })

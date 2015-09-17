@@ -28,6 +28,10 @@ module.exports = function () {
         alias: 'r',
         description: 'Load routes file'
       },
+      response: {
+        alias: 'R',
+        description: 'Load resonse wrapper'
+      },
       delay: {
         alias: 'd',
         description: 'Add delay to responses (ms)'
