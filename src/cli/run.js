@@ -60,7 +60,7 @@ function createApp (source, object, routes, responses, argv) {
     app.use(pause(argv.delay))
   }
 
-  if (responses)
+  if (responses) {
     var key_placeholder = ""
     var others = []
     Object.keys(responses).forEach(function(key) {
@@ -77,7 +77,9 @@ function createApp (source, object, routes, responses, argv) {
       res.jsonp(
         new_response
       )
+    }
   }
+
   router.db._.id = argv.id
   app.db = router.db
   app.use(router)
